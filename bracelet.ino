@@ -48,9 +48,10 @@ int inputs[] = {
   pulse_input
 };
 
+int led_channel[4]; // index is pipe, value is led
+
 int outputs_count = sizeof(outputs)/sizeof(int);
 int inputs_count = sizeof(inputs)/sizeof(int);
-
 
 RF24 radio(CE,CS); // CE, CS
 // Radio pipe addresses for the 2 nodes to communicate.
@@ -69,56 +70,35 @@ void setup() {
   for (int i=0; i<inputs_count; i++) {
     pinMode(inputs[i], INPUT);
   }
-  initialize();
 
   radio.begin();
   radio.setRetries(15,15);
-  int channel = get_channel();
-  int other = 1;
-  radio.openWritingPipe(pipes[channel]);
-
-  for (int i=0; i<4; i++) {
-  	if (i != channel) radio.openReadingPipe(other,pipes[other++]);
-  }
-
+  initialize();  
   radio.startListening();
+
 }
 
 void loop() {
-  	radio.stopListening();
-	int reading;
+  	uint8_t pipe_num;
+    unsigned long started_waiting_at = millis();
+    bool timeout = false;
+
+    radio.startListening();
+
+    while ( ! radio.available(&pipe_num) && ! timeout ) {
+    	if (millis() - started_waiting_at > 250 ) timeout = true;	
+    }
+    if ( !timeout ) {
+    	int value;
+        radio.read( &value, sizeof(int) );
+        set_LED(pipe_num, value);
+	}
+
+	radio.stopListening();
+	unsigned long reading;
 	reading = analogRead(A0);
-	radio.write( &reading, sizeof(int) );
-	delay(1000);
+	radio.write( &reading, sizeof(int));
 	radio.startListening();
-
-
-  for (int i=0; i<4; i++) {
-    int temp = digitalRead(inputs[i]);
-    digitalWrite(outputs[i], temp);
-  }
-  delay(200);
-}
-
-void initialize () {
-  fader(200);
-  fader(100);
-  blink(200);
-}
-
-void fader (int ms) {
-  for (int i=0; i<outputs_count; i++) {
-    digitalWrite(outputs[i],  HIGH);
-    delay(ms);
-    digitalWrite(outputs[i],  LOW);
-  }
-}
-
-void blink (int ms) {
-  for (int i=0; i<outputs_count; i++) digitalWrite(outputs[i],  HIGH);
-  delay(ms);
-  for (int i=0; i<outputs_count; i++) digitalWrite(outputs[i],  LOW);
-  delay(ms);
 }
 
 int get_channel () {
@@ -126,4 +106,56 @@ int get_channel () {
 		int val = digitalRead(inputs[i]);
 		if (val == HIGH) return i;
 	}
+}
+
+void set_LED (uint8_t pipe_num, int value) {
+	int channel = get_channel();
+	int other = 1;
+	for (int i=0; i<4; i++) {
+		if (pipe_num == i) outputs[i];
+	}
+}
+
+void initialize () {
+  
+	int channel = get_channel();
+	int other = 1;
+	led_channel[0] = channel; // led_personal
+
+	radio.openWritingPipe(pipes[channel]);
+
+	for (int i=0; i<4; i++) {
+		if (i != channel) {
+			radio.openReadingPipe(other,pipes[i]);
+			other++;
+		}
+	}
+
+	fader(200);
+	buttons2leds(1000);
+	fader(200);
+	blink(200);
+}
+
+void buttons2leds(int ms) {
+	for (int i=0; i<4; i++) {
+		int temp = digitalRead(inputs[i]);
+		digitalWrite(outputs[i], temp);
+	}
+	delay ms;
+}
+
+void fader (int ms) {
+	for (int i=0; i<outputs_count; i++) {
+		digitalWrite(outputs[i],  HIGH);
+		delay(ms);
+		digitalWrite(outputs[i],  LOW);
+	}
+}
+
+void blink (int ms) {
+	for (int i=0; i<outputs_count; i++) digitalWrite(outputs[i],  HIGH);
+	delay(ms);
+	for (int i=0; i<outputs_count; i++) digitalWrite(outputs[i],  LOW);
+	delay(ms);
 }
