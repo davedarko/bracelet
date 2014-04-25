@@ -131,10 +131,15 @@ void initialize () {
 		}
 	}
 
-	fader(200);
+	fader(100);
+	fader(100);
+	fader(100);
+	fader(100);
+	
+	fader(100);
+	blink(100);
+	blink(100);
 	buttons2leds(1000);
-	fader(200);
-	blink(200);
 }
 
 void buttons2leds(int ms) {
@@ -142,7 +147,7 @@ void buttons2leds(int ms) {
 		int temp = digitalRead(inputs[i]);
 		digitalWrite(outputs[i], temp);
 	}
-	delay ms;
+	delay (ms);
 }
 
 void fader (int ms) {
