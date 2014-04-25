@@ -109,24 +109,30 @@ int get_channel () {
 }
 
 void set_LED (uint8_t pipe_num, int value) {
-	int channel = get_channel();
-	int other = 1;
-	for (int i=0; i<4; i++) {
-		if (pipe_num == i) outputs[i];
-	}
+	analogWrite(outputs[led_channel[pipe_num]],  value);  
 }
 
+/* 
+	If Channel is set to 4, LED2 will show the signal of Channel 1
+
+		LED pers  LED A  LED B  LED C 
+	Chan   1        2      3 	  4
+	Chan   2        1      3 	  4
+	Chan   3        1      2      4
+	Chan   4        1      2      3
+
+ */
 void initialize () {
-  
 	int channel = get_channel();
 	int other = 1;
-	led_channel[0] = channel; // led_personal
+	led_channel[channel] = 0; // led_personal
 
-	radio.openWritingPipe(pipes[channel]);
+	radio.openWritingPipe(pipes[channel]); // 
 
 	for (int i=0; i<4; i++) {
 		if (i != channel) {
 			radio.openReadingPipe(other,pipes[i]);
+			led_channel[i] = other;
 			other++;
 		}
 	}
@@ -134,8 +140,6 @@ void initialize () {
 	fader(100);
 	fader(100);
 	fader(100);
-	fader(100);
-	
 	fader(100);
 	blink(100);
 	blink(100);
