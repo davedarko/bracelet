@@ -70,12 +70,13 @@ void setup() {
   for (int i=0; i<inputs_count; i++) {
     pinMode(inputs[i], INPUT);
   }
-
+  Serial.begin(57600);
   radio.begin();
   radio.setRetries(15,15);
   initialize();  
   radio.startListening();
 
+	
 }
 
 void loop() {
@@ -97,6 +98,8 @@ void loop() {
 	radio.stopListening();
 	unsigned long reading;
 	reading = analogRead(A0);
+	int cnl = get_channel();
+	set_LED (cnl, reading);
 	radio.write( &reading, sizeof(int));
 	radio.startListening();
 }
@@ -109,7 +112,7 @@ int get_channel () {
 }
 
 void set_LED (uint8_t pipe_num, int value) {
-	analogWrite(outputs[led_channel[pipe_num]],  value);  
+	analogWrite(outputs[led_channel[pipe_num]],  value/4);  
 }
 
 /* 
@@ -137,13 +140,19 @@ void initialize () {
 		}
 	}
 
-	fader(100);
-	fader(100);
-	fader(100);
-	fader(100);
-	blink(100);
-	blink(100);
-	buttons2leds(1000);
+	for (int i=0; i<4; i++) {
+		Serial.print(i);
+		Serial.print(": ");
+		Serial.println(led_channel[i]);
+	}
+
+	fader(20);
+	fader(20);
+	fader(20);
+	fader(20);
+	blink(20);
+	blink(20);
+	buttons2leds(200);
 }
 
 void buttons2leds(int ms) {
@@ -152,6 +161,10 @@ void buttons2leds(int ms) {
 		digitalWrite(outputs[i], temp);
 	}
 	delay (ms);
+	for (int i=0; i<4; i++) {
+		int temp = digitalRead(inputs[i]);
+		digitalWrite(outputs[i], LOW);
+	}
 }
 
 void fader (int ms) {
